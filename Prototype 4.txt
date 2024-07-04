@@ -1,0 +1,321 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm> // Include this header for find_if
+#include <limits>    // Include this header for numeric_limits
+
+using namespace std;
+
+class Book {
+public:
+    int id;
+    string title;
+    string author;
+    int publicationYear;
+    string genre;
+    bool isBorrowed;
+
+    Book(int bookId, string bookTitle, string bookAuthor, int year, string bookGenre)
+        : id(bookId), title(bookTitle), author(bookAuthor), publicationYear(year), genre(bookGenre), isBorrowed(false) {}
+};
+
+class Library {
+private:
+    vector<Book> books;
+
+public:
+    Library() {}
+
+    void addBook(int id, string title, string author, int year, string genre) {
+        if (find_if(books.begin(), books.end(), [id](const Book& b) { return b.id == id; }) != books.end()) {
+            cout << "Book ID " << id << " already exists. Please choose a different ID." << endl;
+            return;
+        }
+        books.emplace_back(id, title, author, year, genre);
+        cout << "Book added with ID: " << id << endl;
+    }
+
+    void viewBooks() {
+        cout << "Books in the Library:" << endl;
+        if (books.empty()) {
+            cout << "No books in the library." << endl;
+        } else {
+            for (const auto& book : books) {
+                cout << "ID: " << book.id << ", Title: " << book.title << ", Author: " << book.author
+                     << ", Year: " << book.publicationYear << ", Genre: " << book.genre 
+                     << ", Status: " << (book.isBorrowed ? "Borrowed" : "Available") << endl;
+            }
+        }
+    }
+
+    void removeBook(int id) {
+        auto it = find_if(books.begin(), books.end(), [id](const Book& b) { return b.id == id; });
+        if (it != books.end()) {
+            books.erase(it);
+            cout << "Book removed successfully." << endl;
+        } else {
+            cout << "Book with ID " << id << " not found." << endl;
+        }
+    }
+
+    void borrowBook(int id, const string& studentId) {
+        auto it = find_if(books.begin(), books.end(), [id](const Book& b) { return b.id == id; });
+        if (it != books.end()) {
+            if (!it->isBorrowed) {
+                it->isBorrowed = true;
+                cout << "Book borrowed successfully." << endl;
+            } else {
+                cout << "Book is already borrowed." << endl;
+            }
+        } else {
+            cout << "Book with ID " << id << " not found." << endl;
+        }
+    }
+
+    void returnBook(int id) {
+        auto it = find_if(books.begin(), books.end(), [id](const Book& b) { return b.id == id; });
+        if (it != books.end()) {
+            if (it->isBorrowed) {
+                it->isBorrowed = false;
+                cout << "Book returned successfully." << endl;
+            } else {
+                cout << "Book was not borrowed." << endl;
+            }
+        } else {
+            cout << "Book with ID " << id << " not found." << endl;
+        }
+    }
+
+    void filterBooksByGenre(const string& genre) {
+        cout << "Books in the genre '" << genre << "':" << endl;
+        bool found = false;
+        for (const auto& book : books) {
+            if (book.genre == genre) {
+                cout << "ID: " << book.id << ", Title: " << book.title << ", Author: " << book.author
+                     << ", Year: " << book.publicationYear << ", Status: " << (book.isBorrowed ? "Borrowed" : "Available") << endl;
+                found = true;
+            }
+        }
+        if (!found) {
+            cout << "No books found in the genre '" << genre << "'." << endl;
+        }
+    }
+};
+
+void adminLogin(Library& library) {
+    int choice;
+    string title, author, genre;
+    int year, bookId;
+
+    do {
+        cout << "\nAdmin Control" << endl;
+        cout << "1. Add Book" << endl;
+        cout << "2. View Books" << endl;
+        cout << "3. Remove Book" << endl;
+        cout << "4. Back" << endl;
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1:
+                cout << "Enter book ID: ";
+                if (!(cin >> bookId)) {
+                    cout << "Invalid input. Please enter a valid integer." << endl;
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    break;
+                }
+                cin.ignore(); // Ignore newline character left in the buffer
+                cout << "Enter book title: ";
+                getline(cin, title);
+                cout << "Enter book author: ";
+                getline(cin, author);
+                cout << "Enter publication year: ";
+                if (!(cin >> year)) {
+                    cout << "Invalid input. Please enter a valid integer." << endl;
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    break;
+                }
+                cin.ignore(); // Ignore newline character left in the buffer
+                cout << "Enter book genre: ";
+                getline(cin, genre);
+                library.addBook(bookId, title, author, year, genre);
+                break;
+            case 2:
+                library.viewBooks();
+                break;
+            case 3:
+                cout << "Enter book ID to remove: ";
+                if (!(cin >> bookId)) {
+                    cout << "Invalid input. Please enter a valid integer." << endl;
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    break;
+                }
+                library.removeBook(bookId);
+                break;
+            case 4:
+                cout << "Returning to main menu." << endl;
+                break;
+            default:
+                cout << "Invalid choice. Please try again." << endl;
+        }
+    } while (choice != 4);
+}
+
+void studentLogin(Library& library, const string& studentId) {
+    int studentChoice;
+    string genre;
+    int bookId;
+
+    do {
+        cout << "\nStudent Menu" << endl;
+        cout << "1. View Books" << endl;
+        cout << "2. Filter Books by Genre" << endl;
+        cout << "3. Borrow Book(s)" << endl;
+        cout << "4. Return Book" << endl;
+        cout << "5. Back" << endl;
+        cout << "Enter your choice: ";
+        cin >> studentChoice;
+
+        switch (studentChoice) {
+            case 1:
+                library.viewBooks();
+                break;
+            case 2:
+                cout << "Enter genre: ";
+                cin.ignore();
+                getline(cin, genre);
+                library.filterBooksByGenre(genre);
+                break;
+            case 3:
+                cout << "Enter the number of books to borrow: ";
+                int numBooks;
+                if (!(cin >> numBooks)) {
+                    cout << "Invalid input. Please enter a valid integer." << endl;
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    break;
+                }
+                for (int i = 0; i < numBooks; ++i) {
+                    cout << "Enter book ID to borrow: ";
+                    if (!(cin >> bookId)) {
+                        cout << "Invalid input. Please enter a valid integer." << endl;
+                        cin.clear();
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        break;
+                    }
+                    library.borrowBook(bookId, studentId);
+                }
+                break;
+            case 4:
+                cout << "Enter book ID to return: ";
+                if (!(cin >> bookId)) {
+                    cout << "Invalid input. Please enter a valid integer." << endl;
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    break;
+                }
+                library.returnBook(bookId);
+                break;
+            case 5:
+                cout << "Returning to main menu." << endl;
+                break;
+            default:
+                cout << "Invalid choice. Please try again." << endl;
+        }
+    } while (studentChoice != 5);
+}
+
+int main() {
+    Library library;
+    int select;
+
+    do {
+        cout << "Library System Login\n";
+        cout << "1. Admin\n";
+        cout << "2. Student\n";
+        cout << "3. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> select;
+
+        if (select == 1) {
+            string user, pass;
+            cout << "Admin login selected.\n";
+            cout << "Enter Admin Username: ";
+            cin >> user;
+            cout << "Enter Password: ";
+            cin >> pass;
+
+            if (user == "Admin" && pass == "Pass123") {
+                adminLogin(library);
+            } else {
+                cout << "Invalid username or password. Please try again.\n";
+            }
+        } else if (select == 2) {
+            int choice;
+            cout << "Student login selected.\n";
+            cout << "1. Login\n";
+            cout << "2. Register\n";
+            cout << "Enter your choice: ";
+            cin >> choice;
+
+            if (choice == 1) {
+                string Stduser, Stdpass, studentId;
+                cout << "Enter Username: ";
+                cin >> Stduser;
+                cout << "Enter Password: ";
+                cin >> Stdpass;
+
+                if (Stduser == "Student" && Stdpass == "Pass123") {
+                    cout << "Enter your Student ID: ";
+                    cin >> studentId;
+                    cout << "Login successful!" << endl;
+                    studentLogin(library, studentId);
+                } else {
+                    cout << "Incorrect username or password." << endl;
+                }
+            } else if (choice == 2) {
+                string firstName, lastName, studentNumber, password, confirmPassword, birthday;
+                cout << "Enter First Name: ";
+                cin.ignore(); // Ignore newline character left in the buffer
+                getline(cin, firstName);
+                cout << "Enter Last Name: ";
+                getline(cin, lastName);
+                cout << "Enter Student Number: ";
+                getline(cin, studentNumber);
+
+                while (true) {
+                    cout << "Enter Password: ";
+                    getline(cin, password);
+                    cout << "Confirm Password: ";
+                    getline(cin, confirmPassword);
+
+                    if (password == confirmPassword) {
+                        break;
+                    } else {
+                        cout << "Passwords do not match. Please try again.\n";
+                    }
+                }
+
+                cout << "Enter Birthday (YYYY-MM-DD): ";
+                getline(cin, birthday);
+
+                // You can add functionality to save this data as needed
+                cout << "Registration successful!\n";
+                cout << "Name: " << firstName << " " << lastName << endl;
+                cout << "Student Number: " << studentNumber << endl;
+                cout << "Birthday: " << birthday << endl;
+            } else {
+                cout << "Invalid choice. Please try again.\n";
+            }
+        } else if (select == 3) {
+            cout << "Exiting the system." << endl;
+        } else {
+            cout << "Invalid choice. Please try again.\n";
+        }
+    } while (select != 3);
+
+    return 0;
+}
